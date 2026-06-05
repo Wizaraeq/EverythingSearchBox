@@ -1,0 +1,13 @@
+.vs/
+*.suo
+*.user
+
+**/bin/
+**/obj/
+
+.codegraph/*.db
+.codegraph/*.db-wal
+.codegraph/*.db-shm
+.codegraph/cache/
+.codegraph/*.log
+.codegraph/.dirty

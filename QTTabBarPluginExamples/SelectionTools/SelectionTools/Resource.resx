@@ -1,0 +1,208 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="dcpt" xml:space="preserve">
+    <value>Find empty folders and 0 byte files.;Provides shortcut keys to select / filter by seleted file extension.
+(To filter files, Search box is required in the ButtonBar.) ;Indicates file/folder informations such as folder size, modified date... in status bar. (Windows7);Enable to edit attributes of selected files.</value>
+  </data>
+  <data name="dcpt_ja" xml:space="preserve">
+    <value>現在のフォルダで空のフォルダやサイズが0バイトのファイルを見つけます。;選択中のファイルの拡張子と同じものを選択したり、フィルタするキーボードショートカットを提供します。
+(フィルタするためには検索ボックスが追加されていることが必要です。);選択されたフォルダのサイズなどの情報をステータスバーに表示します。
+フォルダのサイズ、更新/作成日時などから選べます。(Windows7);選択ファイルの属性を編集します。</value>
+  </data>
+  <data name="keys" xml:space="preserve">
+    <value>Select empty files and folders.;Select files by extension;Filter files by extension;Stop getting size of selection;Toggle 'system' attribute;Set 'system' attribute;Remove 'system' attribute;Toggle 'read-only' attribute;Set 'read-only' attribute;Remove 'read-only' attribute;Toggle 'hidden' attribute;Set 'hidden' attribute;Remove 'hidden' attribute</value>
+  </data>
+  <data name="keys_ja" xml:space="preserve">
+    <value>空ファイル/フォルダを選択します。;同じ拡張子のファイルを選択;同じ拡張子でフィルターする;選択ファイルサイズの計算を中断する;システム属性を切り替える;システム属性をつける;システム属性をはずす;読取り専用属性を切り替える;読取り専用属性をつける;読取り専用属性をはずす;隠し属性を切り替える;隠し属性をつける;隠し属性をはずす</value>
+  </data>
+  <data name="name" xml:space="preserve">
+    <value>Select empty;Select by extension;Selection Info To StatusBar;Edit attributes</value>
+  </data>
+  <data name="name_ja" xml:space="preserve">
+    <value>空ファイル選択ボタン;拡張子で選択;ステータスバーに選択ファイルの情報を;ファイル属性編集</value>
+  </data>
+  <data name="currentDriveInfo" xml:space="preserve">
+    <value>Current drive info</value>
+  </data>
+  <data name="currentDriveInfo_ja" xml:space="preserve">
+    <value>カレントドライブ情報</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="SelectEmptyButton_large" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\SelectEmpty_large.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SelectEmptyButton_small" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\SelectEmpty_small.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SelectFileByExtension_large" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\SelectFileByExtension_large.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SelectionInfoToStatusBar_large" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\SelectionSizeToStatusBar_large.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SelectionInfoToStatusBar_small" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\SelectionSizeToStatusBar_small.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="selSize" xml:space="preserve">
+    <value> folder; file; byte;Getting selection size...;Failed.;Aborted.;Free Space: ;Total Size: ; item</value>
+  </data>
+  <data name="selSize_ja" xml:space="preserve">
+    <value> 個のフォルダ; 個のファイル; バイト;サイズ取得中...;失敗;中断されました;空き領域: ;合計サイズ: ; 個の項目</value>
+  </data>
+  <data name="tooltip" xml:space="preserve">
+    <value>Select empty files and folders\nin this folder.;;;</value>
+  </data>
+  <data name="tooltip_ja" xml:space="preserve">
+    <value>現在のフォルダで空ファイル/フォルダを選択します。;;;</value>
+  </data>
+  <data name="SelectFileByExtension_small" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\SelectFileByExtension_small.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="EditAttributes_large" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\EditAttributes_large.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="EditAttributes_small" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\EditAttributes_small.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="sizeInBytes" xml:space="preserve">
+    <value>Display Size in bytes</value>
+  </data>
+  <data name="sizeInBytes_ja" xml:space="preserve">
+    <value>バイト換算値も表示</value>
+  </data>
+  <data name="enableForNetwork" xml:space="preserve">
+    <value>Enable in network folder</value>
+  </data>
+  <data name="enableForNetwork_ja" xml:space="preserve">
+    <value>ネットワークフォルダでも有効</value>
+  </data>
+  <data name="foldersize" xml:space="preserve">
+    <value>Retrieve folder size</value>
+  </data>
+  <data name="foldersize_ja" xml:space="preserve">
+    <value>フォルダーのサイズを取得する</value>
+  </data>
+  <data name="currentFolderInfo" xml:space="preserve">
+    <value>Current folder info</value>
+  </data>
+  <data name="currentFolderInfo_ja" xml:space="preserve">
+    <value>カレントフォルダ情報</value>
+  </data>
+</root>
