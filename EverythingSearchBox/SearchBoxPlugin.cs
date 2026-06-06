@@ -14,7 +14,7 @@ using QTPlugin.Interop;
 
 namespace QuizoPlugins
 {
-    [Plugin(PluginType.BackgroundMultiple, typeof(Localizer), Version = "1.2.0.0")]
+    [Plugin(PluginType.BackgroundMultiple, typeof(Localizer), Version = "1.3.0.0")]
     public class SearchBoxPlugin : IBarMultipleCustomItems
     {
         private const int SW_SHOWNORMAL = 1;
@@ -24,8 +24,11 @@ namespace QuizoPlugins
         private const string EverythingPathValueName = "EverythingPath";
         private const string PlaceholderTextValueName = "PlaceholderText";
         private const string IconNameValueName = "IconName";
+        private const string ArgumentsTemplateValueName = "ArgumentsTemplate";
         private const string DefaultPlaceholderText = "Search...";
         private const string DefaultIconName = "voidtools-01-Everything-Orange.ico";
+        private const string DefaultArgumentsTemplate = "-sort size -nomaximized -path {path} -s {query}";
+        private const string EverythingCommandLineOptionsUrl = "https://www.voidtools.com/support/everything/command_line_options/";
         private const string EverythingTaskbarNotificationWindowClass = "EVERYTHING_TASKBAR_NOTIFICATION";
         private static readonly IntPtr EverythingCommandLineCopyData = IntPtr.Zero;
         private static readonly string[] AvailableIconNames =
@@ -63,6 +66,7 @@ namespace QuizoPlugins
         private IPluginServer pluginServer;
         private string placeholderText = DefaultPlaceholderText;
         private string iconName = DefaultIconName;
+        private string argumentsTemplate = DefaultArgumentsTemplate;
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
@@ -92,6 +96,7 @@ namespace QuizoPlugins
             this.pluginServer = pluginServer;
             placeholderText = LoadPlaceholderText();
             iconName = LoadIconName();
+            argumentsTemplate = LoadArgumentsTemplate();
         }
 
         public void Close(EndCode endCode)
@@ -110,7 +115,7 @@ namespace QuizoPlugins
 
         public void OnOption()
         {
-            PluginOptions updatedOptions = ShowPluginOptionsDialog(placeholderText, iconName, ResolveEverythingPath());
+            PluginOptions updatedOptions = ShowPluginOptionsDialog(placeholderText, iconName, ResolveEverythingPath(), argumentsTemplate);
             if (updatedOptions == null)
             {
                 return;
@@ -118,9 +123,11 @@ namespace QuizoPlugins
 
             placeholderText = updatedOptions.PlaceholderText;
             iconName = updatedOptions.IconName;
+            argumentsTemplate = updatedOptions.ArgumentsTemplate;
             SaveEverythingPath(updatedOptions.EverythingPath);
             SavePlaceholderText(placeholderText);
             SaveIconName(iconName);
+            SaveArgumentsTemplate(argumentsTemplate);
             UpdateOpenSearchBoxPlaceholders();
             UpdateOpenSearchBoxIcons();
         }
@@ -435,6 +442,14 @@ namespace QuizoPlugins
             }
         }
 
+        private string LoadArgumentsTemplate()
+        {
+            using (RegistryKey settingsKey = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath, false))
+            {
+                return settingsKey?.GetValue(ArgumentsTemplateValueName, DefaultArgumentsTemplate) as string ?? DefaultArgumentsTemplate;
+            }
+        }
+
         private void SaveEverythingPath(string everythingPath)
         {
             using (RegistryKey settingsKey = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath))
@@ -470,6 +485,14 @@ namespace QuizoPlugins
             }
         }
 
+        private void SaveArgumentsTemplate(string template)
+        {
+            using (RegistryKey settingsKey = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath))
+            {
+                settingsKey?.SetValue(ArgumentsTemplateValueName, string.IsNullOrWhiteSpace(template) ? DefaultArgumentsTemplate : template, RegistryValueKind.String);
+            }
+        }
+
         private void UpdateOpenSearchBoxPlaceholders()
         {
             foreach (ToolStripItem item in searchBoxes)
@@ -495,8 +518,10 @@ namespace QuizoPlugins
             }
         }
 
-        private PluginOptions ShowPluginOptionsDialog(string currentPlaceholder, string currentIconName, string currentEverythingPath)
+        private PluginOptions ShowPluginOptionsDialog(string currentPlaceholder, string currentIconName, string currentEverythingPath, string currentArgumentsTemplate)
         {
+            string originalIconName = iconName;
+
             using (var form = new Form())
             using (var label = new Label())
             using (var placeholderTextBox = new TextBox())
@@ -504,6 +529,9 @@ namespace QuizoPlugins
             using (var pathTextBox = new TextBox())
             using (var browseButton = new Button())
             using (var autoDetectButton = new Button())
+            using (var argumentsLabel = new Label())
+            using (var argumentsTextBox = new TextBox())
+            using (var argumentsHelpLink = new LinkLabel())
             using (var iconLabel = new Label())
             using (var iconComboBox = new ComboBox())
             using (var resetButton = new Button())
@@ -516,7 +544,7 @@ namespace QuizoPlugins
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
                 form.ShowInTaskbar = false;
-                form.ClientSize = new System.Drawing.Size(440, 250);
+                form.ClientSize = new System.Drawing.Size(520, 370);
 
                 label.AutoSize = true;
                 label.Left = 12;
@@ -535,11 +563,11 @@ namespace QuizoPlugins
 
                 pathTextBox.Left = 12;
                 pathTextBox.Top = 95;
-                pathTextBox.Width = 330;
+                pathTextBox.Width = 244;
                 pathTextBox.Text = currentEverythingPath ?? string.Empty;
 
                 browseButton.Text = "Browse...";
-                browseButton.Left = 348;
+                browseButton.Left = 262;
                 browseButton.Top = 93;
                 browseButton.Width = 80;
                 browseButton.Click += (sender, e) =>
@@ -552,9 +580,9 @@ namespace QuizoPlugins
                 };
 
                 autoDetectButton.Text = "Auto-detect";
-                autoDetectButton.Left = 320;
-                autoDetectButton.Top = 124;
-                autoDetectButton.Width = 108;
+                autoDetectButton.Left = 348;
+                autoDetectButton.Top = 93;
+                autoDetectButton.Width = 80;
                 autoDetectButton.Click += (sender, e) =>
                 {
                     string detectedPath = ResolveAutoDetectedEverythingPath();
@@ -571,38 +599,82 @@ namespace QuizoPlugins
                     pathTextBox.Text = detectedPath;
                 };
 
+                argumentsLabel.AutoSize = true;
+                argumentsLabel.Left = 12;
+                argumentsLabel.Top = 130;
+                argumentsLabel.Text = "Everything arguments template ({path} = current folder, {query} = search text):";
+
+                argumentsTextBox.Left = 12;
+                argumentsTextBox.Top = 153;
+                argumentsTextBox.Width = 496;
+                argumentsTextBox.Height = 72;
+                argumentsTextBox.Multiline = true;
+                argumentsTextBox.ScrollBars = ScrollBars.Vertical;
+                argumentsTextBox.Text = string.IsNullOrWhiteSpace(currentArgumentsTemplate) ? DefaultArgumentsTemplate : currentArgumentsTemplate;
+
+                argumentsHelpLink.AutoSize = true;
+                argumentsHelpLink.Left = 12;
+                argumentsHelpLink.Top = 230;
+                argumentsHelpLink.Text = "Everything command line options";
+                argumentsHelpLink.LinkClicked += (sender, e) =>
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = EverythingCommandLineOptionsUrl,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(
+                            $"Could not open the documentation link: {ex.Message}",
+                            "Search Box Options",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                    }
+                };
+
                 iconLabel.AutoSize = true;
                 iconLabel.Left = 12;
-                iconLabel.Top = 158;
+                iconLabel.Top = 259;
                 iconLabel.Text = "Toolbar icon:";
 
                 iconComboBox.Left = 12;
-                iconComboBox.Top = 181;
-                iconComboBox.Width = 416;
+                iconComboBox.Top = 282;
+                iconComboBox.Width = 496;
                 iconComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
                 iconComboBox.Items.AddRange(AvailableIconNames);
                 iconComboBox.SelectedItem = AvailableIconNames.Contains(currentIconName, StringComparer.OrdinalIgnoreCase)
                     ? currentIconName
                     : DefaultIconName;
+                iconComboBox.SelectedIndexChanged += (sender, e) =>
+                {
+                    iconName = iconComboBox.SelectedItem as string ?? DefaultIconName;
+                    UpdateOpenSearchBoxIcons();
+                };
 
                 resetButton.Text = "Reset";
                 resetButton.Left = 12;
-                resetButton.Top = 210;
+                resetButton.Top = 311;
                 resetButton.Width = 75;
                 resetButton.Click += (sender, e) =>
                 {
                     placeholderTextBox.Text = DefaultPlaceholderText;
                     pathTextBox.Text = ResolveAutoDetectedEverythingPath() ?? string.Empty;
+                    argumentsTextBox.Text = DefaultArgumentsTemplate;
                     iconComboBox.SelectedItem = DefaultIconName;
                 };
 
                 okButton.Text = "OK";
-                okButton.Left = 272;
-                okButton.Top = 210;
+                okButton.Left = 352;
+                okButton.Top = 311;
                 okButton.Width = 75;
                 okButton.Click += (sender, e) =>
                 {
                     string selectedPath = (pathTextBox.Text ?? string.Empty).Trim();
+                    string selectedArgumentsTemplate = (argumentsTextBox.Text ?? string.Empty).Trim();
                     if (!string.IsNullOrEmpty(selectedPath) && !IsSupportedEverythingExecutable(selectedPath))
                     {
                         MessageBox.Show(
@@ -614,13 +686,24 @@ namespace QuizoPlugins
                         return;
                     }
 
+                    if (string.IsNullOrWhiteSpace(selectedArgumentsTemplate))
+                    {
+                        MessageBox.Show(
+                            "Please provide an arguments template.",
+                            "Search Box Options",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        argumentsTextBox.Focus();
+                        return;
+                    }
+
                     form.DialogResult = DialogResult.OK;
                     form.Close();
                 };
 
                 cancelButton.Text = "Cancel";
-                cancelButton.Left = 353;
-                cancelButton.Top = 210;
+                cancelButton.Left = 433;
+                cancelButton.Top = 311;
                 cancelButton.Width = 75;
                 cancelButton.DialogResult = DialogResult.Cancel;
 
@@ -630,6 +713,9 @@ namespace QuizoPlugins
                 form.Controls.Add(pathTextBox);
                 form.Controls.Add(browseButton);
                 form.Controls.Add(autoDetectButton);
+                form.Controls.Add(argumentsLabel);
+                form.Controls.Add(argumentsTextBox);
+                form.Controls.Add(argumentsHelpLink);
                 form.Controls.Add(iconLabel);
                 form.Controls.Add(iconComboBox);
                 form.Controls.Add(resetButton);
@@ -638,12 +724,19 @@ namespace QuizoPlugins
                 form.AcceptButton = okButton;
                 form.CancelButton = cancelButton;
 
-                return form.ShowDialog() == DialogResult.OK
-                    ? new PluginOptions(
-                        placeholderTextBox.Text ?? string.Empty,
-                        iconComboBox.SelectedItem as string ?? DefaultIconName,
-                        (pathTextBox.Text ?? string.Empty).Trim())
-                    : null;
+                DialogResult result = form.ShowDialog();
+                if (result != DialogResult.OK)
+                {
+                    iconName = originalIconName;
+                    UpdateOpenSearchBoxIcons();
+                    return null;
+                }
+
+                return new PluginOptions(
+                    placeholderTextBox.Text ?? string.Empty,
+                    iconComboBox.SelectedItem as string ?? DefaultIconName,
+                    (pathTextBox.Text ?? string.Empty).Trim(),
+                    (argumentsTextBox.Text ?? string.Empty).Trim());
             }
         }
 
@@ -724,18 +817,10 @@ namespace QuizoPlugins
 
         private string BuildEverythingArguments(string currentDirectory, string query)
         {
-            string[] arguments =
-            {
-                "-sort",
-                "size",
-                "-nomaximized",
-                "-path",
-                currentDirectory ?? string.Empty,
-                "-s",
-                query ?? string.Empty
-            };
-
-            return string.Join(" ", arguments.Select(EscapeCommandLineArgument));
+            string template = string.IsNullOrWhiteSpace(argumentsTemplate) ? DefaultArgumentsTemplate : argumentsTemplate;
+            return template
+                .Replace("{path}", EscapeCommandLineArgument(currentDirectory ?? string.Empty))
+                .Replace("{query}", EscapeCommandLineArgument(query ?? string.Empty));
         }
 
         private string EscapeCommandLineArgument(string arg)
@@ -869,11 +954,12 @@ namespace QuizoPlugins
 
         private sealed class PluginOptions
         {
-            public PluginOptions(string placeholderText, string iconName, string everythingPath)
+            public PluginOptions(string placeholderText, string iconName, string everythingPath, string argumentsTemplate)
             {
                 PlaceholderText = placeholderText;
                 IconName = iconName;
                 EverythingPath = everythingPath;
+                ArgumentsTemplate = argumentsTemplate;
             }
 
             public string PlaceholderText { get; }
@@ -881,6 +967,8 @@ namespace QuizoPlugins
             public string IconName { get; }
 
             public string EverythingPath { get; }
+
+            public string ArgumentsTemplate { get; }
         }
     }
 }
