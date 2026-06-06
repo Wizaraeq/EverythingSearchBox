@@ -1,33 +1,27 @@
 using QTPlugin;
 
-sealed class Localizer : LocalizedStringProvider
+namespace QuizoPlugins
 {
-    public override string Author
+    sealed class Localizer : LocalizedStringProvider
     {
-        get
+        public override string Author
         {
-            return "UnderPL";
+            get { return "HamzaETTH"; }
         }
-    }
 
-    public override string Description
-    {
-        get
+        public override string Description
         {
-            return "Adds a search box to the toolbar to search using Everything.";
+            get { return "Adds a search box to the toolbar to search using Everything."; }
         }
-    }
 
-    public override string Name
-    {
-        get
+        public override string Name
         {
-            return "Search Box Plugin";
+            get { return "Search Box Plugin"; }
         }
-    }
 
-    public override void SetKey(int iKey)
-    {
-        // No action needed since we're not using multiple keys
+        public override void SetKey(int iKey)
+        {
+            // Not used in this plugin.
+        }
     }
 }

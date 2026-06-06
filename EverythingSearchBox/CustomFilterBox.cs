@@ -1,152 +1,101 @@
-﻿using System;
+using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-public class CustomFilterBox : TextBox
+namespace QuizoPlugins
 {
-    private string placeholderText;
-    private readonly Color placeholderColor = SystemColors.GrayText;
-    private bool isDarkMode;
-
-    public CustomFilterBox(string placeholderText)
+    public class CustomFilterBox : TextBox
     {
-        this.placeholderText = placeholderText ?? string.Empty;
+        private const int EM_SETCUEBANNER = 0x1501;
 
-        // Set default width and prevent resizing
-        this.Width = 85;
-        this.Multiline = false; // Prevent multi-line input
-        this.AutoSize = false;  // Disable automatic resizing
-        this.Height = 20;       // Set a fixed height
+        private string placeholderText;
+        private bool isDarkMode;
 
-        // Set initial placeholder text
-        SetPlaceholder(); // Call the parameterless version
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
 
-        // Handle focus events for placeholder text
-        this.GotFocus += RemovePlaceholder;
-        this.LostFocus += SetPlaceholder;
-
-        // Listen for system theme changes
-        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
-
-        // Set the initial theme
-        AdaptToCurrentTheme();
-    }
-
-    public void UpdatePlaceholderText(string placeholderText)
-    {
-        bool wasShowingPlaceholder = HasPlaceholderText && this.Text == this.placeholderText;
-        this.placeholderText = placeholderText ?? string.Empty;
-
-        if (wasShowingPlaceholder || string.IsNullOrWhiteSpace(this.Text))
+        public CustomFilterBox(string placeholderText)
         {
-            this.Text = string.Empty;
-            SetPlaceholder();
-        }
-        else
-        {
-            this.ForeColor = isDarkMode ? Color.White : SystemColors.WindowText;
-            this.Invalidate();
-        }
-    }
+            this.placeholderText = placeholderText ?? string.Empty;
 
-    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
-    {
-        if (e.Category == UserPreferenceCategory.General)
-        {
+            Width = 85;
+            Multiline = false;
+            AutoSize = false;
+            Height = 20;
+
+            SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
             AdaptToCurrentTheme();
         }
-    }
 
-    private void AdaptToCurrentTheme()
-    {
-        isDarkMode = IsWindowsDarkMode();
-
-        if (isDarkMode)
+        public void UpdatePlaceholderText(string placeholderText)
         {
-            this.BackColor = Color.FromArgb(30, 30, 30); // Dark background color
-        }
-        else
-        {
-            this.BackColor = SystemColors.Window; // Light background color
+            this.placeholderText = placeholderText ?? string.Empty;
+            ApplyCueBanner();
         }
 
-        // Update the placeholder or text color based on the theme
-        if (HasPlaceholderText && this.Text == placeholderText)
+        protected override void OnHandleCreated(EventArgs e)
         {
-            this.ForeColor = placeholderColor;
-        }
-        else
-        {
-            this.ForeColor = isDarkMode ? Color.White : SystemColors.WindowText;
+            base.OnHandleCreated(e);
+            ApplyCueBanner();
         }
 
-        // Force a repaint to apply new theme colors
-        this.Invalidate();
-    }
-
-    private bool IsWindowsDarkMode()
-    {
-        try
+        protected override void Dispose(bool disposing)
         {
-            var registryKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-            if (registryKey != null)
+            if (disposing)
             {
-                var value = registryKey.GetValue("AppsUseLightTheme");
-                if (value != null && (int)value == 0)
-                {
-                    return true; // Dark mode is enabled
-                }
+                SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category == UserPreferenceCategory.General)
+            {
+                AdaptToCurrentTheme();
             }
         }
-        catch
-        {
-            // Ignore errors and assume light mode if anything goes wrong
-        }
-        return false;
-    }
 
-    private void RemovePlaceholder(object sender, EventArgs e)
-    {
-        if (HasPlaceholderText && this.Text == placeholderText)
+        private void AdaptToCurrentTheme()
         {
-            this.Text = "";
-            this.ForeColor = isDarkMode ? Color.White : SystemColors.WindowText;
+            isDarkMode = IsWindowsDarkMode();
+            BackColor = isDarkMode ? Color.FromArgb(30, 30, 30) : SystemColors.Window;
+            ForeColor = isDarkMode ? Color.White : SystemColors.WindowText;
+            Invalidate();
         }
 
-        // Redraw to remove placeholder
-        this.Invalidate();
-    }
-
-    // Overloaded method without parameters
-    private void SetPlaceholder()
-    {
-        if (HasPlaceholderText && string.IsNullOrWhiteSpace(this.Text))
+        private void ApplyCueBanner()
         {
-            this.Text = placeholderText;
-            this.ForeColor = placeholderColor;
-            this.Invalidate(); // Redraw to display the placeholder
+            if (!IsHandleCreated)
+            {
+                return;
+            }
+
+            SendMessage(Handle, EM_SETCUEBANNER, IntPtr.Zero, placeholderText);
         }
-        else if (!HasPlaceholderText && string.IsNullOrEmpty(this.Text))
+
+        private static bool IsWindowsDarkMode()
         {
-            this.ForeColor = isDarkMode ? Color.White : SystemColors.WindowText;
+            try
+            {
+                using (RegistryKey registryKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    object value = registryKey?.GetValue("AppsUseLightTheme");
+                    if (value is int intValue && intValue == 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore errors and assume light mode if anything goes wrong.
+            }
+
+            return false;
         }
     }
-
-    // Original method with parameters
-    private void SetPlaceholder(object sender, EventArgs e)
-    {
-        SetPlaceholder(); // Call the parameterless version
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
-        }
-        base.Dispose(disposing);
-    }
-
-    private bool HasPlaceholderText => !string.IsNullOrEmpty(placeholderText);
 }

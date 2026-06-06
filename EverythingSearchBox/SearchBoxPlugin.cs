@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -11,7 +14,7 @@ using QTPlugin.Interop;
 
 namespace QuizoPlugins
 {
-    [Plugin(PluginType.BackgroundMultiple, typeof(Localizer), Version = "1.0.0.0")]
+    [Plugin(PluginType.BackgroundMultiple, typeof(Localizer), Version = "1.1.0.0")]
     public class SearchBoxPlugin : IBarMultipleCustomItems
     {
         private const int SW_SHOWNORMAL = 1;
@@ -20,14 +23,46 @@ namespace QuizoPlugins
         private const string SettingsRegistryPath = @"Software\QuizoPlugins\SearchBoxPlugin";
         private const string EverythingPathValueName = "EverythingPath";
         private const string PlaceholderTextValueName = "PlaceholderText";
+        private const string IconNameValueName = "IconName";
         private const string DefaultPlaceholderText = "Search...";
-        private static readonly IntPtr EverythingCommandLineCopyData = new IntPtr(0);
+        private const string DefaultIconName = "voidtools-01-Everything-Orange.ico";
         private const string EverythingTaskbarNotificationWindowClass = "EVERYTHING_TASKBAR_NOTIFICATION";
+        private static readonly IntPtr EverythingCommandLineCopyData = IntPtr.Zero;
+        private static readonly string[] AvailableIconNames =
+        {
+            "voidtools-01-Everything-Orange.ico",
+            "voidtools-02-Everything-Yellow.ico",
+            "voidtools-03-Everything-Chartreuse.ico",
+            "voidtools-04-Everything-Green.ico",
+            "voidtools-05-Everything-SpringGreen.ico",
+            "voidtools-06-Everything-Cyan.ico",
+            "voidtools-07-Everything-SkyBlue.ico",
+            "voidtools-08-Everything-Blue.ico",
+            "voidtools-09-Everything-Purple.ico",
+            "voidtools-10-Everything-Magenta.ico",
+            "voidtools-11-Everything-Pink.ico",
+            "voidtools-12-Everything-Red.ico",
+            "voidtools-13-Everything-Grey.ico",
+            "voidtools-14-Everything-White.ico",
+            "voidtools-15-Everything-1.5.ico",
+            "MMK-Everything-FlatIcon.ico",
+            "MMK-Everything-Icon3D.ico",
+            "MMK-Everything-Icon3DShadow.ico",
+            "LeroyXie-01.ico",
+            "LeroyXie-02.ico",
+            "LeroyXie-03.ico",
+            "LeroyXie-04.ico",
+            "LeroyXie-05.ico",
+            "LeroyXie-06.ico",
+            "LeroyXie-07.ico",
+            "LeroyXie-08.ico",
+            "Eagleeyez-Everything.ico"
+        };
 
-        private List<ToolStripItem> searchBoxes = new List<ToolStripItem>();
-
+        private readonly List<ToolStripItem> searchBoxes = new List<ToolStripItem>();
         private IPluginServer pluginServer;
         private string placeholderText = DefaultPlaceholderText;
+        private string iconName = DefaultIconName;
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
@@ -54,17 +89,18 @@ namespace QuizoPlugins
 
         public void Open(IPluginServer pluginServer, IShellBrowser shellBrowser)
         {
-            // Store the pluginServer instance to get the current tab path later
             this.pluginServer = pluginServer;
-            this.placeholderText = LoadPlaceholderText();
+            placeholderText = LoadPlaceholderText();
+            iconName = LoadIconName();
         }
 
         public void Close(EndCode endCode)
         {
-            foreach (var searchBox in searchBoxes)
+            foreach (ToolStripItem searchBox in searchBoxes)
             {
                 searchBox.Dispose();
             }
+
             searchBoxes.Clear();
         }
 
@@ -74,22 +110,24 @@ namespace QuizoPlugins
 
         public void OnOption()
         {
-            string updatedPlaceholder = ShowPlaceholderOptionsDialog(this.placeholderText);
-            if (updatedPlaceholder == null)
+            PluginOptions updatedOptions = ShowPluginOptionsDialog(placeholderText, iconName);
+            if (updatedOptions == null)
             {
                 return;
             }
 
-            this.placeholderText = updatedPlaceholder;
-            SavePlaceholderText(this.placeholderText);
+            placeholderText = updatedOptions.PlaceholderText;
+            iconName = updatedOptions.IconName;
+            SavePlaceholderText(placeholderText);
+            SaveIconName(iconName);
             UpdateOpenSearchBoxPlaceholders();
+            UpdateOpenSearchBoxIcons();
         }
 
         public void OnShortcutKeyPressed(int index) { }
 
         public bool QueryShortcutKeys(out string[] actions)
         {
-            // No shortcut keys are needed for this plugin
             actions = null;
             return false;
         }
@@ -100,45 +138,38 @@ namespace QuizoPlugins
 
         public void Initialize(int[] order)
         {
-            foreach (var searchBox in searchBoxes)
+            foreach (ToolStripItem searchBox in searchBoxes)
             {
                 searchBox.Dispose();
             }
+
             searchBoxes.Clear();
         }
 
         public ToolStripItem CreateItem(bool fLarge, DisplayStyle displayStyle, int index)
         {
-            var customFilterBox = new CustomFilterBox(this.placeholderText);
+            Image toolbarIcon = GetToolbarItemIcon(fLarge);
+            var toolbarControl = new SearchBoxToolbarControl(placeholderText, toolbarIcon, fLarge);
+            toolbarControl.QuerySubmitted += (sender, query) => RunEverythingSearch(query);
 
-            // Handle KeyDown event to detect "Enter"
-            customFilterBox.KeyDown += (sender, e) =>
+            var controlHost = new ToolStripControlHost(toolbarControl)
             {
-                if (e.KeyCode == Keys.Enter)
-                {
-                    string query = customFilterBox.Text;
-                    // Call your search method
-                    RunEverythingSearch(query);
-                    customFilterBox.Clear();
-                }
-            };
-
-            var controlHost = new ToolStripControlHost(customFilterBox)
-            {
-                AutoSize = false
+                AutoSize = false,
+                Width = toolbarControl.Width,
+                Height = toolbarControl.Height
             };
 
             searchBoxes.Add(controlHost);
             return controlHost;
         }
 
-
         public int Count => -1;
 
         public System.Drawing.Image GetImage(bool fLarge, int index)
         {
-            // No icon for this custom item
-            return null;
+            Image defaultImage = GetDefaultPluginImage(fLarge);
+            Image selectedIcon = TryLoadSelectedPluginIcon(fLarge ? 24 : 16);
+            return selectedIcon ?? defaultImage;
         }
 
         public string GetName(int index)
@@ -152,7 +183,6 @@ namespace QuizoPlugins
         {
             string currentDirectory = null;
 
-            // Attempt to use pluginServer.SelectedTab.Path
             if (pluginServer != null && pluginServer.SelectedTab != null)
             {
                 currentDirectory = pluginServer.SelectedTab.Path;
@@ -162,40 +192,34 @@ namespace QuizoPlugins
                 }
             }
 
-            // If that didn't work, try pluginServer.Path
             if (string.IsNullOrEmpty(currentDirectory))
             {
-                currentDirectory = pluginServer.Path;
+                currentDirectory = pluginServer?.Path;
                 if (!string.IsNullOrEmpty(currentDirectory))
                 {
                     return currentDirectory;
                 }
             }
 
-            // As a last resort, use Environment.CurrentDirectory
-            currentDirectory = Environment.CurrentDirectory;
-            return currentDirectory;
+            return Environment.CurrentDirectory;
         }
 
         private void RunEverythingSearch(string query)
         {
             string currentDirectory = GetCurrentDirectory();
-
             if (string.IsNullOrEmpty(currentDirectory))
             {
                 MessageBox.Show("Could not retrieve current directory.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            // Include the -s option for the search query
-            string arguments = $"-sort size -nomaximized -path \"{currentDirectory}\" -s {EscapeArgument(query)}";
+            string arguments = BuildEverythingArguments(currentDirectory, query);
             if (TrySendCommandLineToRunningEverything(arguments))
             {
                 return;
             }
 
             string everythingPath = ResolveEverythingPath();
-
             if (string.IsNullOrEmpty(everythingPath))
             {
                 everythingPath = PromptForEverythingExecutable();
@@ -289,7 +313,7 @@ namespace QuizoPlugins
                     continue;
                 }
 
-                if (File.Exists(fullPath))
+                if (IsSupportedEverythingExecutable(fullPath))
                 {
                     return fullPath;
                 }
@@ -386,6 +410,17 @@ namespace QuizoPlugins
             }
         }
 
+        private string LoadIconName()
+        {
+            using (RegistryKey settingsKey = Registry.CurrentUser.OpenSubKey(SettingsRegistryPath, false))
+            {
+                string configuredIconName = settingsKey?.GetValue(IconNameValueName, DefaultIconName) as string;
+                return AvailableIconNames.Contains(configuredIconName, StringComparer.OrdinalIgnoreCase)
+                    ? configuredIconName
+                    : DefaultIconName;
+            }
+        }
+
         private void SaveEverythingPath(string everythingPath)
         {
             if (string.IsNullOrWhiteSpace(everythingPath))
@@ -407,21 +442,46 @@ namespace QuizoPlugins
             }
         }
 
+        private void SaveIconName(string iconName)
+        {
+            using (RegistryKey settingsKey = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath))
+            {
+                settingsKey?.SetValue(IconNameValueName, iconName ?? DefaultIconName, RegistryValueKind.String);
+            }
+        }
+
         private void UpdateOpenSearchBoxPlaceholders()
         {
             foreach (ToolStripItem item in searchBoxes)
             {
-                var host = item as ToolStripControlHost;
-                var searchBox = host?.Control as CustomFilterBox;
-                searchBox?.UpdatePlaceholderText(this.placeholderText);
+                ToolStripControlHost host = item as ToolStripControlHost;
+                SearchBoxToolbarControl toolbarControl = host?.Control as SearchBoxToolbarControl;
+                toolbarControl?.UpdatePlaceholderText(placeholderText);
             }
         }
 
-        private string ShowPlaceholderOptionsDialog(string currentPlaceholder)
+        private void UpdateOpenSearchBoxIcons()
+        {
+            foreach (ToolStripItem item in searchBoxes)
+            {
+                ToolStripControlHost host = item as ToolStripControlHost;
+                SearchBoxToolbarControl toolbarControl = host?.Control as SearchBoxToolbarControl;
+                if (toolbarControl == null)
+                {
+                    continue;
+                }
+
+                toolbarControl.UpdateIcon(GetToolbarItemIcon(toolbarControl.IsLargeLayout));
+            }
+        }
+
+        private PluginOptions ShowPluginOptionsDialog(string currentPlaceholder, string currentIconName)
         {
             using (var form = new Form())
             using (var label = new Label())
             using (var textBox = new TextBox())
+            using (var iconLabel = new Label())
+            using (var iconComboBox = new ComboBox())
             using (var resetButton = new Button())
             using (var okButton = new Button())
             using (var cancelButton = new Button())
@@ -432,7 +492,7 @@ namespace QuizoPlugins
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
                 form.ShowInTaskbar = false;
-                form.ClientSize = new System.Drawing.Size(360, 120);
+                form.ClientSize = new System.Drawing.Size(360, 168);
 
                 label.AutoSize = true;
                 label.Left = 12;
@@ -444,33 +504,55 @@ namespace QuizoPlugins
                 textBox.Width = 336;
                 textBox.Text = currentPlaceholder ?? string.Empty;
 
+                iconLabel.AutoSize = true;
+                iconLabel.Left = 12;
+                iconLabel.Top = 72;
+                iconLabel.Text = "Toolbar icon:";
+
+                iconComboBox.Left = 12;
+                iconComboBox.Top = 95;
+                iconComboBox.Width = 336;
+                iconComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+                iconComboBox.Items.AddRange(AvailableIconNames);
+                iconComboBox.SelectedItem = AvailableIconNames.Contains(currentIconName, StringComparer.OrdinalIgnoreCase)
+                    ? currentIconName
+                    : DefaultIconName;
+
                 resetButton.Text = "Reset";
                 resetButton.Left = 12;
-                resetButton.Top = 76;
+                resetButton.Top = 124;
                 resetButton.Width = 75;
-                resetButton.Click += (sender, e) => textBox.Text = DefaultPlaceholderText;
+                resetButton.Click += (sender, e) =>
+                {
+                    textBox.Text = DefaultPlaceholderText;
+                    iconComboBox.SelectedItem = DefaultIconName;
+                };
 
                 okButton.Text = "OK";
                 okButton.Left = 192;
-                okButton.Top = 76;
+                okButton.Top = 124;
                 okButton.Width = 75;
                 okButton.DialogResult = DialogResult.OK;
 
                 cancelButton.Text = "Cancel";
                 cancelButton.Left = 273;
-                cancelButton.Top = 76;
+                cancelButton.Top = 124;
                 cancelButton.Width = 75;
                 cancelButton.DialogResult = DialogResult.Cancel;
 
                 form.Controls.Add(label);
                 form.Controls.Add(textBox);
+                form.Controls.Add(iconLabel);
+                form.Controls.Add(iconComboBox);
                 form.Controls.Add(resetButton);
                 form.Controls.Add(okButton);
                 form.Controls.Add(cancelButton);
                 form.AcceptButton = okButton;
                 form.CancelButton = cancelButton;
 
-                return form.ShowDialog() == DialogResult.OK ? textBox.Text ?? string.Empty : null;
+                return form.ShowDialog() == DialogResult.OK
+                    ? new PluginOptions(textBox.Text ?? string.Empty, iconComboBox.SelectedItem as string ?? DefaultIconName)
+                    : null;
             }
         }
 
@@ -527,7 +609,7 @@ namespace QuizoPlugins
                 {
                     FileName = everythingPath,
                     Arguments = arguments,
-                    UseShellExecute = true,
+                    UseShellExecute = true
                 };
                 Process.Start(startInfo);
                 SaveEverythingPath(everythingPath);
@@ -540,13 +622,127 @@ namespace QuizoPlugins
             }
         }
 
-
-        // Helper method to escape the query argument
-        private string EscapeArgument(string arg)
+        private string BuildEverythingArguments(string currentDirectory, string query)
         {
-            if (string.IsNullOrEmpty(arg))
+            string[] arguments =
+            {
+                "-sort",
+                "size",
+                "-nomaximized",
+                "-path",
+                currentDirectory ?? string.Empty,
+                "-s",
+                query ?? string.Empty
+            };
+
+            return string.Join(" ", arguments.Select(EscapeCommandLineArgument));
+        }
+
+        private string EscapeCommandLineArgument(string arg)
+        {
+            if (arg == null)
+            {
                 return "\"\"";
-            return $"\"{arg.Replace("\"", "\\\"")}\"";
+            }
+
+            bool needsQuotes = arg.Length == 0 || arg.IndexOfAny(new[] { ' ', '\t', '\n', '\v', '"' }) >= 0;
+            if (!needsQuotes)
+            {
+                return arg;
+            }
+
+            var builder = new StringBuilder(arg.Length + 2);
+            builder.Append('"');
+            int backslashCount = 0;
+
+            foreach (char ch in arg)
+            {
+                if (ch == '\\')
+                {
+                    backslashCount++;
+                    continue;
+                }
+
+                if (ch == '"')
+                {
+                    builder.Append('\\', backslashCount * 2 + 1);
+                    builder.Append('"');
+                    backslashCount = 0;
+                    continue;
+                }
+
+                if (backslashCount > 0)
+                {
+                    builder.Append('\\', backslashCount);
+                    backslashCount = 0;
+                }
+
+                builder.Append(ch);
+            }
+
+            if (backslashCount > 0)
+            {
+                builder.Append('\\', backslashCount * 2);
+            }
+
+            builder.Append('"');
+            return builder.ToString();
+        }
+
+        private static Image GetDefaultPluginImage(bool fLarge)
+        {
+            return fLarge ? Resource.SearchBoxPlugin_large : Resource.SearchBoxPlugin_small;
+        }
+
+        private Image GetToolbarItemIcon(bool fLarge)
+        {
+            Image defaultImage = GetDefaultPluginImage(fLarge);
+            Image selectedIcon = TryLoadSelectedPluginIcon(fLarge ? 24 : 16);
+            return selectedIcon ?? defaultImage;
+        }
+
+        private Image TryLoadSelectedPluginIcon(int size)
+        {
+            if (!AvailableIconNames.Contains(iconName, StringComparer.OrdinalIgnoreCase) ||
+                string.Equals(iconName, DefaultIconName, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            try
+            {
+                string resourceName = typeof(SearchBoxPlugin).Assembly
+                    .GetManifestResourceNames()
+                    .FirstOrDefault(name => name.EndsWith("." + iconName, StringComparison.OrdinalIgnoreCase));
+
+                if (resourceName == null)
+                {
+                    return null;
+                }
+
+                Assembly assembly = typeof(SearchBoxPlugin).Assembly;
+                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                using (Icon icon = stream != null ? new Icon(stream, new Size(size, size)) : null)
+                {
+                    if (icon == null)
+                    {
+                        return null;
+                    }
+
+                    Bitmap bitmap = new Bitmap(size, size);
+                    using (Graphics graphics = Graphics.FromImage(bitmap))
+                    {
+                        graphics.Clear(Color.Transparent);
+                        graphics.DrawIcon(icon, new Rectangle(0, 0, size, size));
+                    }
+
+                    return bitmap;
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         #region Plugin Information and Uninstall
@@ -555,7 +751,7 @@ namespace QuizoPlugins
         {
             try
             {
-                using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"Software\QuizoPlugins\SearchBoxPlugin", true))
+                using (RegistryKey rk = Registry.CurrentUser.OpenSubKey(@"Software\QuizoPlugins", true))
                 {
                     if (rk != null)
                     {
@@ -565,43 +761,23 @@ namespace QuizoPlugins
             }
             catch
             {
-                // Ignore any errors during uninstall cleanup
+                // Ignore any errors during uninstall cleanup.
             }
         }
 
         #endregion
-    }
 
-    // Localizer class for plugin metadata
-    sealed class Localizer : LocalizedStringProvider
-    {
-        public override string Author
+        private sealed class PluginOptions
         {
-            get
+            public PluginOptions(string placeholderText, string iconName)
             {
-                return "Your Name";
+                PlaceholderText = placeholderText;
+                IconName = iconName;
             }
-        }
 
-        public override string Description
-        {
-            get
-            {
-                return "Adds a search box to the toolbar to search using Everything.";
-            }
-        }
+            public string PlaceholderText { get; }
 
-        public override string Name
-        {
-            get
-            {
-                return "Search Box Plugin";
-            }
-        }
-
-        public override void SetKey(int iKey)
-        {
-            // Not used in this plugin
+            public string IconName { get; }
         }
     }
 }

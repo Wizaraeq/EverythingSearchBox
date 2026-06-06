@@ -32,10 +32,8 @@ There are three main source files:
 | File | Purpose |
 |------|---------|
 | `SearchBoxPlugin.cs` | Main plugin class. Implements `IBarMultipleCustomItems`, creates `CustomFilterBox` instances, handles Enter key submission, shows plugin options, and launches or forwards searches to Everything. |
-| `CustomFilterBox.cs` | `TextBox` subclass with configurable placeholder text, fixed 85x20 size, and live dark/light mode detection from `AppsUseLightTheme`. |
+| `CustomFilterBox.cs` | `TextBox` subclass with configurable native cue-banner placeholder text, fixed 85x20 size, and live dark/light mode detection from `AppsUseLightTheme`. |
 | `Localizer.cs` | `LocalizedStringProvider` subclass for plugin metadata shown by QTTabBar. |
-
-Note: there is still a duplicate `Localizer` class at the bottom of `SearchBoxPlugin.cs`. Treat `Localizer.cs` as authoritative unless you are explicitly cleaning that duplication up.
 
 ## Plugin lifecycle
 
@@ -73,9 +71,18 @@ The command line passed to Everything is:
   - set custom placeholder text
   - leave it empty for no placeholder
   - reset it to the default `Search...`
+  - choose a bundled toolbar icon from the embedded Everything icon set
 - Placeholder text is stored in `HKCU\Software\QuizoPlugins\SearchBoxPlugin` under `PlaceholderText`.
 - The Everything executable override is stored in the same registry key under `EverythingPath`.
+- The selected bundled toolbar icon is stored in the same registry key under `IconName`.
 - Existing open toolbar search boxes are updated immediately after the placeholder setting changes.
+- Placeholder text is implemented as a native cue banner, not as actual `TextBox.Text`.
+
+## Toolbar icon behavior
+
+- The plugin toolbar icon is bundled into the DLL from the repo-level `icons\` folder as embedded `.ico` resources.
+- `GetImage()` returns a cached 16px or 24px bitmap rendered from the selected embedded icon.
+- The default icon is `voidtools-01-Everything-Orange.ico`.
 
 ## Dark mode
 

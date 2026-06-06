@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("EverythingSearchBox")]
 [assembly: AssemblyDescription("EverythingSearchBox of ButtonBar for 4.0")]
 [assembly: AssemblyConfiguration( "" )]
-[assembly: AssemblyCompany( "UnderPL" )]
+[assembly: AssemblyCompany( "HamzaETTH" )]
 [assembly: AssemblyProduct("EverythingSearchBox/ QTTabBar")]
 [assembly: AssemblyCopyright( "Copyright (C)  2024/" )]
 [assembly: AssemblyTrademark( "" )]
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 //
 // すべての値を指定するか、下のように '*' を使ってリビジョンおよびビルド番号を 
 // 既定値にすることができます:
-[assembly: AssemblyVersion( "1.1.0.3" )]
-[assembly: AssemblyFileVersion( "1.1.0.3" )]
+[assembly: AssemblyVersion( "1.1.0.0" )]
+[assembly: AssemblyFileVersion( "1.1.0.0" )]

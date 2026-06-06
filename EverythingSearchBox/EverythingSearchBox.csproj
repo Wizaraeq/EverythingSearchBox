@@ -52,15 +52,33 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Localizer.cs" />
+    <Compile Include="SearchBoxToolbarControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Resource.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resource.resx</DependentUpon>
+    </Compile>
     <Compile Include="SearchBoxPlugin.cs">
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Spacer_large.png" />
+    <EmbeddedResource Include="Resource.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resource.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Spacer_small.png" />
+    <None Include="Resources\Everything_large.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Everything_small.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\icons\*.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
