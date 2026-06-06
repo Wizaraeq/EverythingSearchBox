@@ -14,7 +14,7 @@ using QTPlugin.Interop;
 
 namespace QuizoPlugins
 {
-    [Plugin(PluginType.BackgroundMultiple, typeof(Localizer), Version = "1.1.0.0")]
+    [Plugin(PluginType.BackgroundMultiple, typeof(Localizer), Version = "1.2.0.0")]
     public class SearchBoxPlugin : IBarMultipleCustomItems
     {
         private const int SW_SHOWNORMAL = 1;
@@ -110,7 +110,7 @@ namespace QuizoPlugins
 
         public void OnOption()
         {
-            PluginOptions updatedOptions = ShowPluginOptionsDialog(placeholderText, iconName);
+            PluginOptions updatedOptions = ShowPluginOptionsDialog(placeholderText, iconName, ResolveEverythingPath());
             if (updatedOptions == null)
             {
                 return;
@@ -118,6 +118,7 @@ namespace QuizoPlugins
 
             placeholderText = updatedOptions.PlaceholderText;
             iconName = updatedOptions.IconName;
+            SaveEverythingPath(updatedOptions.EverythingPath);
             SavePlaceholderText(placeholderText);
             SaveIconName(iconName);
             UpdateOpenSearchBoxPlaceholders();
@@ -289,9 +290,19 @@ namespace QuizoPlugins
 
         private string ResolveEverythingPath()
         {
+            return ResolveEverythingPath(includeSavedPath: true);
+        }
+
+        private string ResolveAutoDetectedEverythingPath()
+        {
+            return ResolveEverythingPath(includeSavedPath: false);
+        }
+
+        private string ResolveEverythingPath(bool includeSavedPath)
+        {
             var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (string candidate in GetEverythingCandidates())
+            foreach (string candidate in GetEverythingCandidates(includeSavedPath))
             {
                 if (string.IsNullOrWhiteSpace(candidate))
                 {
@@ -322,12 +333,15 @@ namespace QuizoPlugins
             return null;
         }
 
-        private IEnumerable<string> GetEverythingCandidates()
+        private IEnumerable<string> GetEverythingCandidates(bool includeSavedPath)
         {
-            string savedPath = LoadSavedEverythingPath();
-            if (!string.IsNullOrWhiteSpace(savedPath))
+            if (includeSavedPath)
             {
-                yield return savedPath;
+                string savedPath = LoadSavedEverythingPath();
+                if (!string.IsNullOrWhiteSpace(savedPath))
+                {
+                    yield return savedPath;
+                }
             }
 
             foreach (string registryPath in GetAppPathCandidates())
@@ -423,14 +437,20 @@ namespace QuizoPlugins
 
         private void SaveEverythingPath(string everythingPath)
         {
-            if (string.IsNullOrWhiteSpace(everythingPath))
-            {
-                return;
-            }
-
             using (RegistryKey settingsKey = Registry.CurrentUser.CreateSubKey(SettingsRegistryPath))
             {
-                settingsKey?.SetValue(EverythingPathValueName, everythingPath, RegistryValueKind.String);
+                if (settingsKey == null)
+                {
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(everythingPath))
+                {
+                    settingsKey.DeleteValue(EverythingPathValueName, false);
+                    return;
+                }
+
+                settingsKey.SetValue(EverythingPathValueName, everythingPath, RegistryValueKind.String);
             }
         }
 
@@ -475,11 +495,15 @@ namespace QuizoPlugins
             }
         }
 
-        private PluginOptions ShowPluginOptionsDialog(string currentPlaceholder, string currentIconName)
+        private PluginOptions ShowPluginOptionsDialog(string currentPlaceholder, string currentIconName, string currentEverythingPath)
         {
             using (var form = new Form())
             using (var label = new Label())
-            using (var textBox = new TextBox())
+            using (var placeholderTextBox = new TextBox())
+            using (var pathLabel = new Label())
+            using (var pathTextBox = new TextBox())
+            using (var browseButton = new Button())
+            using (var autoDetectButton = new Button())
             using (var iconLabel = new Label())
             using (var iconComboBox = new ComboBox())
             using (var resetButton = new Button())
@@ -492,26 +516,69 @@ namespace QuizoPlugins
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
                 form.ShowInTaskbar = false;
-                form.ClientSize = new System.Drawing.Size(360, 168);
+                form.ClientSize = new System.Drawing.Size(440, 250);
 
                 label.AutoSize = true;
                 label.Left = 12;
                 label.Top = 15;
                 label.Text = "Placeholder text (leave empty for no placeholder):";
 
-                textBox.Left = 12;
-                textBox.Top = 38;
-                textBox.Width = 336;
-                textBox.Text = currentPlaceholder ?? string.Empty;
+                placeholderTextBox.Left = 12;
+                placeholderTextBox.Top = 38;
+                placeholderTextBox.Width = 416;
+                placeholderTextBox.Text = currentPlaceholder ?? string.Empty;
+
+                pathLabel.AutoSize = true;
+                pathLabel.Left = 12;
+                pathLabel.Top = 72;
+                pathLabel.Text = "Everything executable path:";
+
+                pathTextBox.Left = 12;
+                pathTextBox.Top = 95;
+                pathTextBox.Width = 330;
+                pathTextBox.Text = currentEverythingPath ?? string.Empty;
+
+                browseButton.Text = "Browse...";
+                browseButton.Left = 348;
+                browseButton.Top = 93;
+                browseButton.Width = 80;
+                browseButton.Click += (sender, e) =>
+                {
+                    string selectedPath = PromptForEverythingExecutable(saveSelection: false);
+                    if (!string.IsNullOrEmpty(selectedPath))
+                    {
+                        pathTextBox.Text = selectedPath;
+                    }
+                };
+
+                autoDetectButton.Text = "Auto-detect";
+                autoDetectButton.Left = 320;
+                autoDetectButton.Top = 124;
+                autoDetectButton.Width = 108;
+                autoDetectButton.Click += (sender, e) =>
+                {
+                    string detectedPath = ResolveAutoDetectedEverythingPath();
+                    if (string.IsNullOrEmpty(detectedPath))
+                    {
+                        MessageBox.Show(
+                            "Could not auto-detect an Everything executable.",
+                            "Search Box Options",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                        return;
+                    }
+
+                    pathTextBox.Text = detectedPath;
+                };
 
                 iconLabel.AutoSize = true;
                 iconLabel.Left = 12;
-                iconLabel.Top = 72;
+                iconLabel.Top = 158;
                 iconLabel.Text = "Toolbar icon:";
 
                 iconComboBox.Left = 12;
-                iconComboBox.Top = 95;
-                iconComboBox.Width = 336;
+                iconComboBox.Top = 181;
+                iconComboBox.Width = 416;
                 iconComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
                 iconComboBox.Items.AddRange(AvailableIconNames);
                 iconComboBox.SelectedItem = AvailableIconNames.Contains(currentIconName, StringComparer.OrdinalIgnoreCase)
@@ -520,28 +587,49 @@ namespace QuizoPlugins
 
                 resetButton.Text = "Reset";
                 resetButton.Left = 12;
-                resetButton.Top = 124;
+                resetButton.Top = 210;
                 resetButton.Width = 75;
                 resetButton.Click += (sender, e) =>
                 {
-                    textBox.Text = DefaultPlaceholderText;
+                    placeholderTextBox.Text = DefaultPlaceholderText;
+                    pathTextBox.Text = ResolveAutoDetectedEverythingPath() ?? string.Empty;
                     iconComboBox.SelectedItem = DefaultIconName;
                 };
 
                 okButton.Text = "OK";
-                okButton.Left = 192;
-                okButton.Top = 124;
+                okButton.Left = 272;
+                okButton.Top = 210;
                 okButton.Width = 75;
-                okButton.DialogResult = DialogResult.OK;
+                okButton.Click += (sender, e) =>
+                {
+                    string selectedPath = (pathTextBox.Text ?? string.Empty).Trim();
+                    if (!string.IsNullOrEmpty(selectedPath) && !IsSupportedEverythingExecutable(selectedPath))
+                    {
+                        MessageBox.Show(
+                            "Please select a valid Everything executable (Everything.exe or Everything64.exe), or leave the field empty to use automatic detection.",
+                            "Search Box Options",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        pathTextBox.Focus();
+                        return;
+                    }
+
+                    form.DialogResult = DialogResult.OK;
+                    form.Close();
+                };
 
                 cancelButton.Text = "Cancel";
-                cancelButton.Left = 273;
-                cancelButton.Top = 124;
+                cancelButton.Left = 353;
+                cancelButton.Top = 210;
                 cancelButton.Width = 75;
                 cancelButton.DialogResult = DialogResult.Cancel;
 
                 form.Controls.Add(label);
-                form.Controls.Add(textBox);
+                form.Controls.Add(placeholderTextBox);
+                form.Controls.Add(pathLabel);
+                form.Controls.Add(pathTextBox);
+                form.Controls.Add(browseButton);
+                form.Controls.Add(autoDetectButton);
                 form.Controls.Add(iconLabel);
                 form.Controls.Add(iconComboBox);
                 form.Controls.Add(resetButton);
@@ -551,12 +639,20 @@ namespace QuizoPlugins
                 form.CancelButton = cancelButton;
 
                 return form.ShowDialog() == DialogResult.OK
-                    ? new PluginOptions(textBox.Text ?? string.Empty, iconComboBox.SelectedItem as string ?? DefaultIconName)
+                    ? new PluginOptions(
+                        placeholderTextBox.Text ?? string.Empty,
+                        iconComboBox.SelectedItem as string ?? DefaultIconName,
+                        (pathTextBox.Text ?? string.Empty).Trim())
                     : null;
             }
         }
 
         private string PromptForEverythingExecutable()
+        {
+            return PromptForEverythingExecutable(saveSelection: true);
+        }
+
+        private string PromptForEverythingExecutable(bool saveSelection)
         {
             using (var dialog = new OpenFileDialog())
             {
@@ -584,7 +680,11 @@ namespace QuizoPlugins
                     return null;
                 }
 
-                SaveEverythingPath(selectedPath);
+                if (saveSelection)
+                {
+                    SaveEverythingPath(selectedPath);
+                }
+
                 return selectedPath;
             }
         }
@@ -769,15 +869,18 @@ namespace QuizoPlugins
 
         private sealed class PluginOptions
         {
-            public PluginOptions(string placeholderText, string iconName)
+            public PluginOptions(string placeholderText, string iconName, string everythingPath)
             {
                 PlaceholderText = placeholderText;
                 IconName = iconName;
+                EverythingPath = everythingPath;
             }
 
             public string PlaceholderText { get; }
 
             public string IconName { get; }
+
+            public string EverythingPath { get; }
         }
     }
 }
