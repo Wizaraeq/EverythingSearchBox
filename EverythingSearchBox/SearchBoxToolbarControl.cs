@@ -6,44 +6,27 @@ namespace QuizoPlugins
 {
     internal sealed class SearchBoxToolbarControl : UserControl
     {
-        private readonly PictureBox iconBox;
         private readonly CustomFilterBox searchBox;
-        private readonly int iconSize;
 
         public SearchBoxToolbarControl(string placeholderText, Image iconImage, bool fLarge)
         {
-            iconSize = fLarge ? 24 : 16;
-
-            iconBox = new PictureBox
+            searchBox = new CustomFilterBox(placeholderText)
             {
-                SizeMode = PictureBoxSizeMode.CenterImage,
-                Width = iconSize,
-                Height = iconSize,
                 Left = 2
             };
 
-            searchBox = new CustomFilterBox(placeholderText)
-            {
-                Left = iconBox.Right + 4
-            };
-
             Width = searchBox.Right + 2;
-            Height = Math.Max(searchBox.Height, iconSize) + 2;
-
-            iconBox.Top = (Height - iconBox.Height) / 2;
+            Height = searchBox.Height + 2;
             searchBox.Top = (Height - searchBox.Height) / 2;
 
-            Controls.Add(iconBox);
             Controls.Add(searchBox);
-
-            UpdateIcon(iconImage);
 
             searchBox.KeyDown += SearchBox_KeyDown;
         }
 
         public event EventHandler<string> QuerySubmitted;
 
-        public bool IsLargeLayout => iconSize > 16;
+        public bool IsLargeLayout => false;
 
         public void UpdatePlaceholderText(string placeholderText)
         {
@@ -52,9 +35,7 @@ namespace QuizoPlugins
 
         public void UpdateIcon(Image iconImage)
         {
-            Image previousImage = iconBox.Image;
-            iconBox.Image = iconImage != null ? new Bitmap(iconImage) : null;
-            previousImage?.Dispose();
+            // アイコンは表示しない
         }
 
         protected override void Dispose(bool disposing)
@@ -62,7 +43,6 @@ namespace QuizoPlugins
             if (disposing)
             {
                 searchBox.KeyDown -= SearchBox_KeyDown;
-                iconBox.Image?.Dispose();
             }
 
             base.Dispose(disposing);
